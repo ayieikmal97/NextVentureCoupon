@@ -26,7 +26,7 @@ Route::post('/mock-checkout', function (Request $request) {
     
     // Dispatch the consumption job
     ConsumeCouponJob::dispatch(
-        2, 
+        1, 
         1 // Hardcoded user ID for testing, replace with $request->user()->id later
     )->onQueue('default');
 

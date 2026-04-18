@@ -15,7 +15,7 @@ class CouponController extends Controller
         
         //just for default to create cart
         $cart=Cart::create([
-            'coupon_code'=>$request->coupon_code,
+            'coupon_code'=>strtoupper($request->coupon_code),
             'total_amount'=>100,
         ]);
 
