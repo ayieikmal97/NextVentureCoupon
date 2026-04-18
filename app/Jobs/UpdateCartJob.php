@@ -54,13 +54,6 @@ class UpdateCartJob implements ShouldQueue
             'discount_amount' => $discountAmount,
             'coupon_id'=>$coupon->id,
         ]);
-
-        CouponUsage::create([
-            'coupon_id'=>$coupon->id,
-            'user_id'=>$this->userId,
-            'cart_id'=>$this->cartId,
-        ]);
-        // Broadcast to the frontend so the UI updates instantly
-        // broadcast(new CartUpdated($this->cartId, $cart->total_amount));
+        
     }
 }

@@ -33,7 +33,8 @@ class CouponController extends Controller
 
         return response()->json([
             'status' => 'Coupon verification in progress',
-            'job_id' => $jobId
+            'job_id' => $jobId,
+            'cart_id'=>$cart->id,
         ], 202);
     }
 

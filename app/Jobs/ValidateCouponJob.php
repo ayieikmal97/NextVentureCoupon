@@ -39,7 +39,7 @@ class ValidateCouponJob implements ShouldQueue, ShouldBeUnique
 
     public function uniqueId(): string
     {
-        return $this->jobId; 
+        return $this->userId . '_' . $this->couponCode;
     }
 
     /**
@@ -53,13 +53,13 @@ class ValidateCouponJob implements ShouldQueue, ShouldBeUnique
             ->where('is_active', true)
             ->with('rules') // Eager load the rules relationship
             ->first();
-        $rule=CouponRules::where('coupon_id',$coupon->id)->orderBy('id','desc')->first();
+        
         if (!$coupon) {
             $this->failValidation('Coupon not found or inactive');
             return;
         }
-        
-        
+        $rule=CouponRules::where('coupon_id',$coupon->id)->orderBy('id','desc')->first();
+        $rules = json_decode($rule->rules_json, true);
         // 2. Run through Strategy/Chain of Responsibility rules
         $validationResult = $engine->validate($rule, $this->userId, $this->cartId,$coupon->id);
         
@@ -68,7 +68,8 @@ class ValidateCouponJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $maxGlobalUses = $coupon->rules['max_global_uses'] ?? 0;
+        $maxGlobalUses = $rules['max_global_uses'] ?? 0;
+        
         // 3. Attempt Atomic Reservation
         if ($this->reserveInRedis($coupon,$maxGlobalUses)) {
             UpdateCartJob::dispatch($this->cartId, $this->userId,$this->couponCode)->onQueue('default');
@@ -80,7 +81,7 @@ class ValidateCouponJob implements ShouldQueue, ShouldBeUnique
                 ->onQueue('low');
             Cache::put("coupon_job_{$this->jobId}", ['status' => 'completed'], now()->addMinutes(5));
         } else {
-            $this->failValidation($validationResult->reason, $coupon);
+            $this->failValidation('This coupon has reached its maximum global usage limit.', $coupon);
         }
     }
 
@@ -96,14 +97,15 @@ class ValidateCouponJob implements ShouldQueue, ShouldBeUnique
     protected function reserveInRedis($coupon, $maxGlobalUses): bool
     {
         $globalKey = "coupon:{$coupon->code}:global_uses";
-
+        
         if (!Redis::exists($globalKey) && $maxGlobalUses > 0) {
-            $this->globalCounter($coupon->code, $globalKey);
+            $this->globalCounter($coupon->id, $globalKey);
         }
+        
         // If max_global_uses is 0 or missing, we assume it's unlimited.
         // We still reserve it for the user to prevent them from applying it twice.
         $isUnlimited = $maxGlobalUses <= 0 ? 1 : 0;
-
+        
         $script = <<<LUA
         local global_key = KEYS[1]
         local user_reserve_key = KEYS[2]
@@ -138,12 +140,12 @@ LUA;
         return (bool) $result;
     }
 
-    protected function globalCounter(string $couponCode, string $globalKey): void
+    protected function globalCounter(int $couponId, string $globalKey): void
     {
         // Count how many times it was permanently consumed
-        $consumedCount = CouponUsage::where('coupon_code', $couponCode)
+        $consumedCount = CouponUsage::where('coupon_id', $couponId)
             ->count();
-
+        
         // Restore the counter in Redis (set it to never expire organically)
         Redis::set($globalKey, $consumedCount);
     }

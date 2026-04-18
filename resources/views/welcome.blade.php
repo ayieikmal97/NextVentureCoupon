@@ -34,6 +34,8 @@
     <div class="input-group">
         <input type="text" id="coupon-input" placeholder="e.g. SUMMER20" autocomplete="off">
         <button id="apply-btn">Apply</button>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
+    <button id="checkout-btn" style="width: 100%; background-color: #059669;">Simulate Checkout & Pay</button>
     </div>
 
     <div id="status-message" class="message">
@@ -125,6 +127,31 @@
         statusText.textContent = message;
         spinner.style.display = state === 'loading' ? 'block' : 'none';
     }
+
+    const checkoutBtn = document.getElementById('checkout-btn');
+
+    checkoutBtn.addEventListener('click', async () => {
+        checkoutBtn.disabled = true;
+        checkoutBtn.textContent = 'Processing Payment...';
+
+        try {
+            const response = await fetch('/mock-checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}' // Make sure CSRF is passed
+                },
+                body: JSON.stringify({ cart_id: CART_ID })
+            });
+
+            if (response.ok) {
+                checkoutBtn.textContent = 'Payment Successful! Coupon Consumed.';
+            }
+        } catch (error) {
+            checkoutBtn.textContent = 'Checkout Failed';
+        }
+    });
 </script>
 </body>
 </html>
