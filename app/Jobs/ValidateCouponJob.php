@@ -58,7 +58,7 @@ class ValidateCouponJob implements ShouldQueue, ShouldBeUnique
             $this->failValidation('Coupon not found or inactive');
             return;
         }
-        $rule=CouponRules::where('coupon_id',$coupon->id)->orderBy('id','desc')->first();
+        $rule=CouponRules::where('coupon_id',$coupon->id)->orderBy('version','desc')->first();
         $rules = json_decode($rule->rules_json, true);
         // 2. Run through Strategy/Chain of Responsibility rules
         $validationResult = $engine->validate($rule, $this->userId, $this->cartId,$coupon->id);

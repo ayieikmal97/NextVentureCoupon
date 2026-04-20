@@ -32,6 +32,7 @@
     
     <label for="coupon-input" style="font-size: 14px; font-weight: 600;">Promo Code</label>
     <div class="input-group">
+        <input type="hidden" id="cart_id" name="cart_id">
         <input type="text" id="coupon-input" placeholder="e.g. SUMMER20" autocomplete="off">
         <button id="apply-btn">Apply</button>
         <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
@@ -43,6 +44,7 @@
         <span id="status-text"></span>
     </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script>
     const applyBtn = document.getElementById('apply-btn');
     const couponInput = document.getElementById('coupon-input');
@@ -51,8 +53,8 @@
     const spinner = document.getElementById('spinner');
 
     // Mock cart ID for this example
-    const CART_ID = 12345; 
-
+    
+    const USER_ID=1;
     applyBtn.addEventListener('click', async () => {
         const code = couponInput.value.trim();
         if (!code) return;
@@ -70,11 +72,13 @@
                     'Accept': 'application/json',
                      'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
-                body: JSON.stringify({ coupon_code: code, cart_id: CART_ID })
+                body: JSON.stringify({ coupon_code: code, user_id:USER_ID })
             });
 
             if (response.status === 202) {
                 const data = await response.json();
+                
+                $('#cart_id').val(data.cart_id)
                 // 3. Start polling the backend using the returned job_id
                 pollForCouponResult(data.job_id);
             } else {
@@ -82,6 +86,7 @@
                 applyBtn.disabled = false;
             }
         } catch (error) {
+            console.log(error)
             setUIState('error', 'Network error occurred.');
             applyBtn.disabled = false;
         }
@@ -142,7 +147,7 @@
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}' // Make sure CSRF is passed
                 },
-                body: JSON.stringify({ cart_id: CART_ID })
+                body: JSON.stringify({ cart_id: $('#cart_id').val(),user_id:USER_ID })
             });
 
             if (response.ok) {

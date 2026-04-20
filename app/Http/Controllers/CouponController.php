@@ -7,6 +7,7 @@ use App\Jobs\ValidateCouponJob;
 use App\Models\Cart;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use App\Jobs\ConsumeCouponJob;
 
 class CouponController extends Controller
 {
@@ -26,7 +27,7 @@ class CouponController extends Controller
         // Dispatch to the high-priority queue
         ValidateCouponJob::dispatch(
             $request->coupon_code, 
-            1, 
+            $request->user_id, 
             $cart->id, 
             $jobId
         )->onQueue('high');
@@ -50,5 +51,15 @@ class CouponController extends Controller
 
         // Return 'completed' or 'failed'
         return response()->json($result);
+    }
+
+    public function mockCheckout(Request $request)
+    {
+        ConsumeCouponJob::dispatch(
+        1, 
+        $request->user_id, // Hardcoded user ID for testing, replace with $request->user()->id later
+        )->onQueue('default');
+
+        return response()->json(['status' => 'Checkout simulated, coupon consumption in progress']);
     }
 }

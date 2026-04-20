@@ -72,8 +72,8 @@ class CouponRuleEngine
         if (!$mustBeFirstTime) return (object) ['passed' => true];
 
         
-        //$hasOrders = \App\Models\Order::where('user_id', $userId)->exists();
-        $hasOrders = false; 
+        $hasOrders = \App\Models\CouponUsage::where('user_id', $userId)->exists();
+        //$hasOrders = false; 
 
         return (object) [
             'passed' => !$hasOrders,
